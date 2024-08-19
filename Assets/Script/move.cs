@@ -8,7 +8,7 @@ public class Move : MonoBehaviour
     public float jumpForce = 7f; // Force applied when jumping
     public LayerMask groundLayers; // To detect if the ball is on the ground
     public Transform groundCheck; // A point on the ball to check if it's grounded
-    public float groundCheckRadius = 0.1f; // The radius of the ground check
+    public float groundCheckRadius = 0.2f; // The radius of the ground check
     public Transform cameraTransform; // Reference to the main camera's transform
 
     private Rigidbody rb;
@@ -18,6 +18,9 @@ public class Move : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody>();
+
+        // Freeze the rotation to prevent rolling
+        rb.freezeRotation = true;
     }
 
     // Update is called once per frame
@@ -38,9 +41,10 @@ public class Move : MonoBehaviour
         cameraRight.Normalize();
 
         // Calculate the movement direction based on camera orientation
-        Vector3 movement = (cameraForward * moveVertical + cameraRight * moveHorizontal) * speed;
+        Vector3 movement = (cameraForward * moveVertical + cameraRight * moveHorizontal) * speed * Time.deltaTime;
 
-        rb.AddForce(movement);
+        // Use MovePosition to move the ball without causing it to roll
+        rb.MovePosition(rb.position + movement);
 
         // Check if the ball is on the ground
         isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayers);
