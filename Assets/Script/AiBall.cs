@@ -10,6 +10,7 @@ public class AIBall : MonoBehaviour
     public LayerMask groundLayers; // To detect if the ball is on the ground
     public Transform groundCheck; // A point on the ball to check if it's grounded
     public float groundCheckRadius = 0.2f; // The radius of the ground check
+    public float catchDistance = 1.5f; // Distance to catch the target ball
 
     private Rigidbody rb;
     private bool isGrounded;
@@ -22,6 +23,8 @@ public class AIBall : MonoBehaviour
 
     void Update()
     {
+     
+
         // Calculate the direction towards the target ball
         Vector3 direction = (targetBall.position - transform.position).normalized;
         direction.y = 0; // Keep movement horizontal
@@ -38,6 +41,12 @@ public class AIBall : MonoBehaviour
         {
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
+
+        // Check if the AI ball is close enough to catch the target ball
+        if (Vector3.Distance(transform.position, targetBall.position) <= catchDistance)
+        {
+            CatchTarget();
+        }
     }
 
     // Example AI logic to decide when to jump
@@ -47,5 +56,36 @@ public class AIBall : MonoBehaviour
         float distanceToTarget = Vector3.Distance(transform.position, targetBall.position);
         return distanceToTarget < 3f; // Jump if close enough
     }
+
+    void CatchTarget()
+    {
+        // Catch the target
+        AIBall caughtAIBall = targetBall.GetComponent<AIBall>();
+        if (caughtAIBall != null)
+        {
+            // Notify GameManager that this AI ball has been caught and should be removed
+            GameManager.Instance.RemoveBall(caughtAIBall);
+
+            // Assign the next target for this AI ball
+            GameManager.Instance.AssignNextTargetForAI(this);
+        }
+        else if (targetBall.GetComponent<Move>() != null)
+        {
+            // If the target is the player ball, trigger game over
+            GameManager.Instance.CheckGameOver();
+        }
+    }
+
+    void OnDrawGizmos()
+    {
+        // Draw a line in the Scene view between the AI ball and its target
+        if (targetBall != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(transform.position, targetBall.position);
+        }
+    }
 }
+
+
 

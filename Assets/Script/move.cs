@@ -10,17 +10,18 @@ public class Move : MonoBehaviour
     public Transform groundCheck; // A point on the ball to check if it's grounded
     public float groundCheckRadius = 0.2f; // The radius of the ground check
     public Transform cameraTransform; // Reference to the main camera's transform
+    public float catchDistance = 1.5f; // Distance to catch the target ball
 
     private Rigidbody rb;
     private bool isGrounded;
+    public Transform targetBall;
 
     // Start is called before the first frame update
     void Start()
     {
         rb = GetComponent<Rigidbody>();
+        rb.freezeRotation = true; // Prevent the ball from rolling
 
-        // Freeze the rotation to prevent rolling
-        rb.freezeRotation = true;
     }
 
     // Update is called once per frame
@@ -54,5 +55,39 @@ public class Move : MonoBehaviour
         {
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
+
+        // Allow the player to catch the target ball when pressing 'E'
+        if (targetBall != null && Input.GetKeyDown(KeyCode.E) && Vector3.Distance(transform.position, targetBall.position) <= catchDistance)
+        {
+            CatchTarget();
+        }
+    }
+
+    void CatchTarget()
+    {
+        // Ensure targetBall is valid before attempting to destroy it
+        if (targetBall != null && Vector3.Distance(transform.position, targetBall.position) <= 1.5f)
+        {
+            AIBall caughtAIBall = targetBall.GetComponent<AIBall>();
+            if (caughtAIBall != null)
+            {
+                // Notify GameManager that this AI ball has been caught and should be removed
+                GameManager.Instance.RemoveBall(caughtAIBall);
+
+                // Assign the next target for the player
+                GameManager.Instance.AssignNextTargetForPlayer();
+            }
+        }
+    }
+
+    void OnDrawGizmos()
+    {
+        // Draw a line in the Scene view between the AI ball and its target
+        if (targetBall != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(transform.position, targetBall.position);
+        }
     }
 }
+

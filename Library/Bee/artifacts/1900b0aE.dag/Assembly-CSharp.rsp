@@ -354,6 +354,7 @@
 -analyzer:"C:/Program Files/Unity/Hub/Editor/2022.3.16f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.SourceGenerators.dll"
 "Assets/Script/AiBall.cs"
 "Assets/Script/camera.cs"
+"Assets/Script/GameManager.cs"
 "Assets/Script/move.cs"
 -langversion:9.0
 
