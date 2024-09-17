@@ -1,36 +1,33 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.SocialPlatforms.Impl;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance;
+
+
+    
 
     public AIBall[] aiBalls; // Array of all AI balls in the game
     public Move playerBall; // Reference to the player-controlled ball
-    private List<AIBall> activeAIBalls; // List to track active AI balls
+    public List<AIBall> activeAIBalls; // List to track active AI balls
+
     private int currentTargetIndex = 0; // Index to track the current target in the sequence
 
-    void Awake()
-    {
-        // Singleton pattern to ensure only one instance of GameManager exists
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
-    }
 
     void Start()
+
+
     {
-        // Initialize active AI balls list
+
+        
         activeAIBalls = new List<AIBall>(aiBalls);
         // Assign initial targets
         AssignInitialTargets();
     }
+
 
     void AssignInitialTargets()
     {
@@ -79,41 +76,73 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void RemoveBall(AIBall ball)
+    public void HandleTeamFormation(AIBall leader, AIBall newTeamMember)
     {
-        if (activeAIBalls.Contains(ball))
-        {
-            activeAIBalls.Remove(ball);
-            Destroy(ball.gameObject);
-            // If player’s target was the removed ball, update to the next
-            if (playerBall.targetBall == ball.transform)
-            {
-                AssignNextTargetForPlayer();
-            }
+        activeAIBalls.Remove(newTeamMember);
+        AssignNextTargetForAI(leader);
 
-            // Reassign the targets for AI balls that targeted the removed ball
-            foreach (AIBall aiBall in activeAIBalls)
-            {
-                if (aiBall.targetBall == ball.transform)
-                {
-                    AssignNextTargetForAI(aiBall);
-                }
-            }
+        foreach (AIBall member in leader.teamMembers)
+        {
+            member.targetBall = leader.targetBall;
         }
+        // Loop through the caught AI ball's team members and add them to the player's team
+        foreach (AIBall teamMember in newTeamMember.teamMembers)
+        {
+            leader.AddToTeam(teamMember);
+            teamMember.targetBall = leader.targetBall;
+        }
+
+        // Add the caught AI ball to the leader's team and reassign the next target
+    
+        leader.AddToTeam(newTeamMember);
+        newTeamMember.targetBall = leader.targetBall;
+        newTeamMember.teamMembers.Clear();
+        
+    }
+
+    public void HandlePlayerTeamFormation(Move player, AIBall newTeamMember)
+    {
+        // Add the caught AI ball to the player's team
+        activeAIBalls.Remove(newTeamMember);
+
+        // The player continues to chase its original target
+        AssignNextTargetForPlayer();
+
+        foreach (AIBall member in player.teamMembers)
+        {
+            member.targetBall = player.targetBall;
+        }
+        // Loop through the caught AI ball's team members and add them to the player's team
+        foreach (AIBall teamMember in newTeamMember.teamMembers)
+        {
+            player.AddToTeam(teamMember);
+            teamMember.targetBall = player.targetBall;
+        }
+
+        player.AddToTeam(newTeamMember);
+        newTeamMember.targetBall = player.targetBall;
+        newTeamMember.teamMembers.Clear();
+        
     }
 
     public void CheckGameOver()
     {
         // Check if the player ball is caught (targeted by the last AI ball)
-        if (activeAIBalls.Count > 0 &&
+        if ((activeAIBalls.Count > 0 &&
             activeAIBalls[activeAIBalls.Count - 1].targetBall == playerBall.transform &&
-            Vector3.Distance(activeAIBalls[activeAIBalls.Count - 1].transform.position, playerBall.transform.position) <= 1.5f)
+            Vector3.Distance(activeAIBalls[activeAIBalls.Count - 1].transform.position, playerBall.transform.position) <= 1.5f) || activeAIBalls.Count == 0)
         {
             // Trigger game over
-            Time.timeScale = 0;
+            
+            SceneManager.LoadSceneAsync(2);
+            
             // Implement logic to restart the game or show a lose screen
         }
     }
+
+   
+
+
 }
 
 

@@ -11,6 +11,7 @@ public class Move : MonoBehaviour
     public float groundCheckRadius = 0.2f; // The radius of the ground check
     public Transform cameraTransform; // Reference to the main camera's transform
     public float catchDistance = 1.5f; // Distance to catch the target ball
+    public List<AIBall> teamMembers = new List<AIBall>();
 
     private Rigidbody rb;
     private bool isGrounded;
@@ -47,6 +48,7 @@ public class Move : MonoBehaviour
         // Use MovePosition to move the ball without causing it to roll
         rb.MovePosition(rb.position + movement);
 
+
         // Check if the ball is on the ground
         isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayers);
 
@@ -65,19 +67,27 @@ public class Move : MonoBehaviour
 
     void CatchTarget()
     {
-        // Ensure targetBall is valid before attempting to destroy it
-        if (targetBall != null && Vector3.Distance(transform.position, targetBall.position) <= 1.5f)
-        {
-            AIBall caughtAIBall = targetBall.GetComponent<AIBall>();
+        
+           AIBall caughtAIBall = targetBall.GetComponent<AIBall>();
+            GameManager gameManager = FindObjectOfType<GameManager>();
             if (caughtAIBall != null)
             {
-                // Notify GameManager that this AI ball has been caught and should be removed
-                GameManager.Instance.RemoveBall(caughtAIBall);
+                // Notify GameManager to handle team formation (add the caught ball to the player's team)
+                gameManager.HandlePlayerTeamFormation(this, caughtAIBall);
 
-                // Assign the next target for the player
-                GameManager.Instance.AssignNextTargetForPlayer();
             }
-        }
+        
+    }
+
+    public void AddToTeam(AIBall newMember)
+    {
+
+        newMember.isTeamLeader = false;
+        // Add the new ball as a team member
+        teamMembers.Add(newMember);
+        // Change the color of the new team member to match the player's color
+        newMember.GetComponent<Renderer>().material.color = GetComponent<Renderer>().material.color;
+
     }
 
     void OnDrawGizmos()

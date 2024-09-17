@@ -11,27 +11,27 @@ public class AIBall : MonoBehaviour
     public Transform groundCheck; // A point on the ball to check if it's grounded
     public float groundCheckRadius = 0.2f; // The radius of the ground check
     public float catchDistance = 1.5f; // Distance to catch the target ball
+    public bool isTeamLeader = true;
 
     private Rigidbody rb;
     private bool isGrounded;
+    public List<AIBall> teamMembers;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        rb.freezeRotation = true; // Prevent the AI ball from rolling
+        rb.freezeRotation = true; // Prevent the AI ball from rollingte
+        teamMembers = new List<AIBall>();
     }
 
     void Update()
     {
-     
 
-        // Calculate the direction towards the target ball
-        Vector3 direction = (targetBall.position - transform.position).normalized;
-        direction.y = 0; // Keep movement horizontal
 
-        // Move the AI ball towards the target
-        Vector3 movement = direction * speed * Time.deltaTime;
-        rb.MovePosition(rb.position + movement);
+        
+        MoveTowardsTarget();
+        
+        
 
         // Check if the ball is on the ground
         isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckRadius, groundLayers);
@@ -43,11 +43,26 @@ public class AIBall : MonoBehaviour
         }
 
         // Check if the AI ball is close enough to catch the target ball
-        if (Vector3.Distance(transform.position, targetBall.position) <= catchDistance)
+        if (isTeamLeader && Vector3.Distance(transform.position, targetBall.position) <= catchDistance)
         {
             CatchTarget();
         }
     }
+
+    // Method for the team leader to move towards the target
+    void MoveTowardsTarget()
+    {
+        if (targetBall != null)
+        {
+            Vector3 direction = (targetBall.position - transform.position).normalized;
+            direction.y = 0; // Keep movement horizontal
+
+            // Move the AI ball towards the target
+            Vector3 movement = direction * speed * Time.deltaTime;
+            rb.MovePosition(rb.position + movement);
+        }
+    }
+
 
     // Example AI logic to decide when to jump
     bool ShouldJump()
@@ -61,19 +76,37 @@ public class AIBall : MonoBehaviour
     {
         // Catch the target
         AIBall caughtAIBall = targetBall.GetComponent<AIBall>();
-        if (caughtAIBall != null)
-        {
-            // Notify GameManager that this AI ball has been caught and should be removed
-            GameManager.Instance.RemoveBall(caughtAIBall);
-
-            // Assign the next target for this AI ball
-            GameManager.Instance.AssignNextTargetForAI(this);
-        }
-        else if (targetBall.GetComponent<Move>() != null)
+        GameManager gameManager = FindObjectOfType<GameManager>();
+        if (targetBall.GetComponent<Move>() != null)
         {
             // If the target is the player ball, trigger game over
-            GameManager.Instance.CheckGameOver();
+            gameManager.CheckGameOver();
         }
+        else if (caughtAIBall != null)
+        {
+            // Add the caught AI ball to the team
+            gameManager.HandleTeamFormation(this, caughtAIBall);
+            
+
+        }
+        
+    }
+
+    // Add the caught AI ball to this AI ball's team
+    public void AddToTeam(AIBall newTeamMember)
+    {
+        newTeamMember.isTeamLeader = false; // The caught AI ball is no longer a team leader
+        teamMembers.Add(newTeamMember); // Add to the team
+        newTeamMember.ChangeColor(this.GetComponent<Renderer>().material.color); // Change color to match the team leader's color
+    }
+
+    // Change the color of this AI ball (and its team members)
+    public void ChangeColor(Color newColor)
+    {
+        // Change the color of this ball
+        GetComponent<Renderer>().material.color = newColor;
+
+       
     }
 
     void OnDrawGizmos()
