@@ -60,7 +60,7 @@ public class Move : NetworkBehaviour
         rb.freezeRotation = true;
         animator = GetComponentInChildren<Animator>();
         Debug.Log("Animator found: " + animator);
-        if (SceneManager.GetActiveScene().name != "GameScene")
+        if (SceneManager.GetActiveScene().name != "GameScene" && SceneManager.GetActiveScene().name != "RestartScene")
         {
             enabled = false;
             return;
@@ -449,6 +449,13 @@ public class Move : NetworkBehaviour
         newMember.SetIsTeamleader(false);
         teamMembersMulti.Add(newMember);
         newMember.GetComponentInChildren<PlayerVisual>().UpdatePlayerColorClientRpc(GetComponentInChildren<PlayerVisual>().GetPlayerColor());
+    }
+
+    public void EnableFreeRoamMode()
+    {
+        SetCanMove(true);
+        SetCanCatch(false); // disable game logic
+                            // Optionally disable team logic
     }
 }
 
