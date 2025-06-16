@@ -15,47 +15,95 @@ public class RestartScreenUI : MonoBehaviour
 
     private void Start()
     {
-        StartCoroutine(SetupFreeRoam());
-        StartCoroutine(RequestPlacementAndDisplay());
+        NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += OnRestartSceneLoaded;
     }
-
-    private IEnumerator SetupFreeRoam()
+    private void OnRestartSceneLoaded(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
     {
-        yield return new WaitForSeconds(1f); // let network initialize
+        if (sceneName == Loader.Scene.RestartScene.ToString())
+        {
+            // Safe to spawn players now
+            SpawnPlayersForFreeRoam(); // custom method
+            StartCoroutine(CountdownToReturnToTitle());
 
-        SpawnPlayersForFreeRoam(); // custom method
-        StartCoroutine(CountdownToReturnToTitle());
+            // Unsubscribe after use
+            NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= OnRestartSceneLoaded;
+        }
     }
+
 
     private void SpawnPlayersForFreeRoam()
     {
-        Vector3[] spawnPositions = new Vector3[]
+        Vector3[] orderedSpawnPositions = new Vector3[]
         {
-        new Vector3(0, 1, 0),
-        new Vector3(5, 1, 0),
-        new Vector3(-5, 1, 0),
-        new Vector3(0, 1, 5),
-        new Vector3(0, 1, -5),
-        new Vector3(5, 1, 5),
-        new Vector3(-5, 1, -5)
+        new Vector3(0, 3.5f, 3),     // 1st place
+        new Vector3(0, 2.5f, 1),     // 2nd place
+        new Vector3(0, 1.5f, -1),    // 3rd place
+        new Vector3(-10, 0.5f, -10),
+        new Vector3(10, 0.5f, -10),
+        new Vector3(-10, 0.5f, 10),
+        new Vector3(10, 0.5f, 10)
         };
 
-        int spawnIndex = 0;
+        Dictionary<int, ulong> placementToClientId = new Dictionary<int, ulong>();
+        List<ulong> otherClients = new List<ulong>();
+
+        // Classify players by placement
         foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
         {
-            Transform player = Instantiate(playerPrefab, spawnPositions[spawnIndex % spawnPositions.Length], Quaternion.identity);
-            player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
-
-            Move move = player.GetComponent<Move>();
-            if (move != null)
+            int placement = GameMultiplayer.Instance.GetPlayerPlacement(clientId);
+            if (placement >= 1 && placement <= 3 && !placementToClientId.ContainsKey(placement))
             {
-                move.EnableFreeRoamMode();
-                freeRoamPlayers.Add(move);
+                placementToClientId[placement] = clientId;
             }
+            else
+            {
+                otherClients.Add(clientId);
+            }
+        }
 
-            spawnIndex++;
+        int spawnIndex = 0;
+
+        // Spawn 1st, 2nd, 3rd place
+        for (int place = 1; place <= 3; place++)
+        {
+            if (placementToClientId.TryGetValue(place, out ulong clientId))
+            {
+                Vector3 spawnPos = orderedSpawnPositions[spawnIndex];
+                SpawnPlayerAt(clientId, spawnPos);
+                spawnIndex++;
+            }
+        }
+
+        // Spawn the rest
+        foreach (ulong clientId in otherClients)
+        {
+            if (spawnIndex < orderedSpawnPositions.Length)
+            {
+                SpawnPlayerAt(clientId, orderedSpawnPositions[spawnIndex]);
+                spawnIndex++;
+            }
+            else
+            {
+                // Fallback if more than 7 players
+                Vector3 fallbackPos = new Vector3(Random.Range(-5f, 5f), 1f, Random.Range(-5f, 5f));
+                SpawnPlayerAt(clientId, fallbackPos);
+            }
         }
     }
+
+    private void SpawnPlayerAt(ulong clientId, Vector3 position)
+    {
+        Transform player = Instantiate(playerPrefab, position, Quaternion.identity);
+        player.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
+
+        Move move = player.GetComponent<Move>();
+        if (move != null)
+        {
+            move.EnableFreeRoamMode();
+            freeRoamPlayers.Add(move);
+        }
+    }
+
 
     private IEnumerator RequestPlacementAndDisplay()
     {
@@ -98,14 +146,15 @@ public class RestartScreenUI : MonoBehaviour
             Destroy(GameLobby.Instance.gameObject);
         }
 
+        
+
+
+        Loader.Load(Loader.Scene.TitleScene);
         if (NetworkManager.Singleton != null)
         {
             NetworkManager.Singleton.Shutdown();
             Destroy(NetworkManager.Singleton.gameObject);
         }
-
-
-        Loader.Load(Loader.Scene.TitleScene);
     }
 
     private IEnumerator CleanupAfterDelay()

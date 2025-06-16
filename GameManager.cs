@@ -33,7 +33,8 @@ public class GameManager : NetworkBehaviour
     public Move playerBall;
     public static GameManager Instance { get; private set; }
     public List<Move> activePlayers = new List<Move>();
-    
+    private List<Move> allPlayers = new List<Move>();
+
 
 
 
@@ -257,9 +258,11 @@ public class GameManager : NetworkBehaviour
             playerTransform.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
             
             Move move = playerTransform.GetComponent<Move>();
+          
             if (move != null)
             {
                 activePlayers.Add(move);
+                allPlayers.Add(move);
                 move.SetCanMove(false);
                 Debug.Log($"[GameManager] Assigned Move to client {clientId} | Owner: {move.OwnerClientId}");
             }
@@ -314,7 +317,15 @@ public class GameManager : NetworkBehaviour
         {
             ulong winnerId = activePlayers[0].OwnerClientId;
             GameMultiplayer.Instance.SetPlayerPlacement(winnerId, 1);
-
+            foreach (Move player in allPlayers)
+            {
+                if (player != null && player.NetworkObject != null && player.NetworkObject.IsSpawned)
+                {
+                    player.NetworkObject.Despawn();
+                }
+            }
+            activePlayers.Clear();
+            allPlayers.Clear();
             Loader.LoadNetwork(Loader.Scene.RestartScene);
         }
     }
@@ -332,13 +343,15 @@ public class GameManager : NetworkBehaviour
             GameMultiplayer.Instance.SetPlayerPlacement(activePlayers[1].OwnerClientId, 1);
         }
 
-        foreach (Move player in activePlayers)
+        foreach (Move player in allPlayers)
         {
             if (player != null && player.NetworkObject != null && player.NetworkObject.IsSpawned)
             {
-                player.NetworkObject.Despawn(); // Proper network cleanup
+                player.NetworkObject.Despawn();
             }
         }
+        activePlayers.Clear();
+        allPlayers.Clear();
 
         Loader.LoadNetwork(Loader.Scene.RestartScene);
     }
