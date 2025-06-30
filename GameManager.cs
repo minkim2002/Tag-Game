@@ -321,11 +321,12 @@ public class GameManager : NetworkBehaviour
             {
                 if (player != null && player.NetworkObject != null && player.NetworkObject.IsSpawned)
                 {
-                    player.NetworkObject.Despawn();
+                    NetworkManager.Singleton.ConnectedClients[player.OwnerClientId].PlayerObject.Despawn();
                 }
             }
             activePlayers.Clear();
             allPlayers.Clear();
+            NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= SceneManager_OnLoadEventCompleted;
             Loader.LoadNetwork(Loader.Scene.RestartScene);
         }
     }
@@ -347,12 +348,15 @@ public class GameManager : NetworkBehaviour
         {
             if (player != null && player.NetworkObject != null && player.NetworkObject.IsSpawned)
             {
-                player.NetworkObject.Despawn();
+                if (player.OwnerClientId != NetworkManager.ServerClientId)
+                {
+                    NetworkManager.Singleton.DisconnectClient(player.OwnerClientId);
+                }
             }
         }
         activePlayers.Clear();
         allPlayers.Clear();
-
+        NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= SceneManager_OnLoadEventCompleted;
         Loader.LoadNetwork(Loader.Scene.RestartScene);
     }
 

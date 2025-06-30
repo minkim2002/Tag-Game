@@ -6,8 +6,7 @@ using Unity.Netcode;
 
 public class StartScreenUI : MonoBehaviour
 {
-    [SerializeField] private Button playMultiplayerButton;
-    [SerializeField] private Button playSingleplayerButton;
+    [SerializeField] private Button startButton;
     [SerializeField] private Button quitButton;
 
     private void Awake()
@@ -24,16 +23,16 @@ public class StartScreenUI : MonoBehaviour
             Destroy(GameLobby.Instance.gameObject);
         }
 
-        playMultiplayerButton.onClick.AddListener(() =>
+        startButton.onClick.AddListener(() =>
         {
             Loader.Load(Loader.Scene.StartMultiplayerScene);
         });
 
 
-        playSingleplayerButton.onClick.AddListener(() =>
-        {
-            Loader.Load(Loader.Scene.StartMultiplayerScene);
-        });
+        //playSingleplayerButton.onClick.AddListener(() =>
+        //{
+        //    Loader.Load(Loader.Scene.StartMultiplayerScene);
+        //});
 
 
         quitButton.onClick.AddListener(() =>

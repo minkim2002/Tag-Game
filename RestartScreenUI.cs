@@ -15,19 +15,16 @@ public class RestartScreenUI : MonoBehaviour
 
     private void Start()
     {
-        NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += OnRestartSceneLoaded;
+        
+        StartCoroutine(SetupFreeRoam());
+        StartCoroutine(RequestPlacementAndDisplay());
     }
-    private void OnRestartSceneLoaded(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
-    {
-        if (sceneName == Loader.Scene.RestartScene.ToString())
-        {
-            // Safe to spawn players now
-            SpawnPlayersForFreeRoam(); // custom method
-            StartCoroutine(CountdownToReturnToTitle());
 
-            // Unsubscribe after use
-            NetworkManager.Singleton.SceneManager.OnLoadEventCompleted -= OnRestartSceneLoaded;
-        }
+    private IEnumerator SetupFreeRoam()
+    {
+        yield return new WaitForSeconds(1f); // let network initialize
+        SpawnPlayersForFreeRoam();
+        StartCoroutine(CountdownToReturnToTitle());
     }
 
 
@@ -107,12 +104,12 @@ public class RestartScreenUI : MonoBehaviour
 
     private IEnumerator RequestPlacementAndDisplay()
     {
-        
+        yield return new WaitForSeconds(1f);
 
         if (GameMultiplayer.Instance != null)
         {
             Debug.Log("Requesting player placement from the server...");
-        
+
         }
 
         ulong clientId = NetworkManager.Singleton.LocalClientId;
@@ -146,7 +143,7 @@ public class RestartScreenUI : MonoBehaviour
             Destroy(GameLobby.Instance.gameObject);
         }
 
-        
+
 
 
         Loader.Load(Loader.Scene.TitleScene);
@@ -161,7 +158,7 @@ public class RestartScreenUI : MonoBehaviour
     {
         yield return new WaitForSeconds(10f); // Wait 10 seconds before cleanup
 
-       
+
         if (GameMultiplayer.Instance != null)
         {
             Destroy(GameMultiplayer.Instance.gameObject);
@@ -181,7 +178,7 @@ public class RestartScreenUI : MonoBehaviour
 
         Loader.Load(Loader.Scene.TitleScene);
 
-        
+
     }
 
 
